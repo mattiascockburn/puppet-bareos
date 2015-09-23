@@ -1,0 +1,104 @@
+2015-01-07  Russell Harrison  <rharrison@fedoraproject.org> - 0.5.1
+  * Fix priority for client jobs.
+
+2014-12-12  Russell Harrison  <rharrison@fedoraproject.org> - 0.5.0
+  * Add the option to set the priority for a backup job.
+  * Fix deprecated variable access in the templates
+
+2013-10-17  Russell Harrison <rharrison@fedoraproject.org> - 0.4.1
+  * Work around a bug in v1.0.0 of the puppetlabs-mysql module that causes the
+    mysql_grant type to notify on every run by having the mysql_database
+    resource created in the mysql::db define notify Exec['make_db_tables']
+    directly.
+
+2013-06-28  Russell Harrison <rharrison@fedoraproject.org> - 0.4.0
+  * Add an option to disable client backup and / or restore jobs
+  * Add an option to ensure client configs are present or absent
+
+2013-06-11  Russell Harrison <rharrison@fedoraproject.org> - 0.3.1
+  * Reload bacula-dir configuration if files are removed from bacula-dir.d
+
+2013-05-30  Russell Harrison <rharrison@fedoraproject.org> - 0.3.0
+  * Fix bug where the volume retention period for the default pool was getting
+    passed to the default incremental pool
+  * Instead of restarting the bacula-dir service which could interrupt running
+    jobs tell the director to reload its configuration
+  * Added ability to decide if volumes in the default pools are auto pruned or not.
+
+2013-05-14  Russell Harrison <rharrison@fedoraproject.org> - 0.2.0
+  * Move to absolute qualification of variables and classes to avoid
+    https://projects.puppetlabs.com/issues/17335
+  * Add options for setting the email adress for the Mail, Mail On Error,
+    and Operator destinations for standard messages and the Mail destination
+    for daemon messages.
+  * Removeing purge command from database backup job since it isn't working
+    correctly
+  * Only configure plugin dir if plugins are provided
+
+2013-04-08  Russell Harrison <rharrison@fedoraproject.org> - 0.1.0
+  * Add abbility to configure 'Rerun Failed Levels' directive to client job configuration.
+
+2013-04-08  Russell Harrison <rharrison@fedoraproject.org> - 0.0.5
+  * Move CHANGELOG to standard location so it can be found by Puppet Forge
+  * Fix location of bsmtp utility
+
+2012-11-30  Russell Harrison <rharrison@fedoraproject.org> - 0.0.4
+  * Fix MySQL database management
+  * Specify perms for file resources
+  * Clean up resource relationships
+  * Simplify and update documentation
+  * Migrate `bacula::config::client` to `bacula::client::config`
+  * Allow `bacula::client::config` to be called directly to allow configuring
+    clients with exported resources
+  * Proper application of the ASL 2.0
+  * Move to using fqdn instead of shorter names to simplify management and prevent
+    name collisions
+  * Stop using scope.lookupvar and allow vars to be passed in as params
+  * Merge [pull request](https://github.com/rharrison10/rharrison-bacula/pull/1)
+    from [Erik Smit](https://github.com/erik-smit)
+  * Syntax cleanup
+  * Move CHANGELOG to Markdown format
+  * Add Bacula TLS - Communications Encryption management
+  * Allow mount path of the default backup device to be changed.
+  * Basic custom FileSet creation
+  * Include custom config file for the director
+  * Manage Bacula logwatch configurations
+
+2012-11-25  erik-smit <smite@zylon.net>
+  * Allow purging unmanaged files (like outdated clients or filesets) from config-dir.
+
+2012-10-24  erik-smit <smite@zylon.net>
+  * Config default plugin directory for file daemon
+  * Fix bconsole director name (this is _NOT_ Console)
+  * Fixing catalog support for postgres
+  * Add Debian/Ubuntu package naming
+  * Add minimalistic postgres support
+
+2012-09-21  Russell Harrison <rharrison@fedoraproject.org>
+  * Moving db management out of common to director and creating subclasses for each backend
+
+2012-09-20  Russell Harrison <rharrison@fedoraproject.org>
+  * Changing variables to not be puppet reserved words
+  * Make sure packages are installed before baclula user and group are defined
+
+Wed Sep 19 2012 Russell Harrison <rharrison@fedoraproject.org> - 0.0.3
+  * Documenting this is a fork under my name.
+  * Simple script to update installed module by hand.
+  * Modified to work properly with RHEL.
+  * Remove God aweful global variables. Imposible to maintain.
+  * Move bacula::config::validate to bacula::params::validate.
+  * Clean up formating to comply with the style guide.
+  * Update documentation to reflect changes.
+
+Thu Dec 15 2011 Carl Caum <carl@puppetlabs.com> - 0.0.2
+  * Support multiple DB backends
+  * Support Managing databases through 3rd party modules
+  * Ability to declare clients through class parameters or ENC variables
+  * Documentation improvements
+
+Thu Dec  8 2011 Carl Caum <carl@puppetlabs.com> - 0.0.1
+  * Manage a Bacula director
+  * Manage Bacula clients
+  * Manage a Bacula storage daemon
+  * Manage console installations
+  * Customize configuration files with custom templates

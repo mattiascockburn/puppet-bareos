@@ -1,0 +1,81 @@
+Client {
+  Name     = "<%= @name %>"
+  Address  = "<%= @name %>"
+  Password = "<%= @director_password_real %>"
+  Catalog  = "<%= @director_server_real %>:<%= @db_backend_real %>"
+  File Retention = 6 Weeks
+  Job Retention  = 1 Year
+  Auto Prune = Yes
+<% if @use_tls -%>
+  TLS Enable = Yes
+  TLS Require = <%= @tls_require %>
+<% if @tls_ca_cert -%>
+  TLS CA Certificate File = <%= @tls_ca_cert %>
+<% end -%>
+<% if @tls_ca_cert_dir -%>
+  TLS CA Certificate Dir = <%= @tls_ca_cert_dir %>
+<% end -%>
+<% end -%>
+}
+
+Job {
+  Name     = "<%= @name %>"
+  Client   = "<%= @name %>"
+  Type     = Backup
+  Enabled  = "<%= @backup_enable %>"
+<%- if @priority -%>
+  Priority = <%= @priority %>
+<%- end -%>
+  FileSet  = "<%= @fileset %>"
+  Storage  = "<%= @storage_server_real %>:storage:<%= @pool %>"
+  Schedule = "<%= @client_schedule %>"
+  Pool     = "<%= @storage_server_real %>:pool:<%= @pool %>"
+  <%- if @pool_full_real -%>
+  Full Backup Pool = "<%= @storage_server_real %>:pool:<%= @pool_full_real %>"
+  <%- end -%>
+  <%- if @pool_incr_real -%>
+  Incremental Backup Pool = "<%= @storage_server_real %>:pool:<%= @pool_incr_real %>"
+  <%- end -%>
+  <%- if @pool_diff_real -%>
+  Differential Backup Pool = "<%= @storage_server_real %>:pool:<%= @pool_diff_real %>"
+  <%- end -%>
+  Messages = "<%= @director_server_real %>:messages:standard"
+  Rerun Failed Levels = <%= @rerun_failed_levels %>
+<% if @run_scripts_real -%>
+  <%- @run_scripts_real.each do |runscript| -%>
+  RunScript {
+    RunsWhen       = <%= runscript['RunsWhen'] %>
+    <%- if runscript['RunsOnSuccess'] -%>
+    RunsOnSuccess  = <%= runscript['RunsOnSuccess'] %>
+    <%- end -%>
+    <%- if runscript['RunsOnFailure'] -%>
+    RunsOnFailure  = <%= runscript['RunsOnFailure'] %>
+    <%- end -%>
+    <%- if runscript['RunsOnClient'] -%>
+    RunsOnClient   = <%= runscript['RunsOnClient'] %>
+    <%- end -%>
+    <%- if runscript['FailJobOnError'] -%>
+    FailJobOnError = <%= runscript['FailJobOnError'] %>
+    <%- end -%>
+    <%- if runscript['Command'] -%>
+    Command        = "<%= runscript['Command'] %>"
+    <%- end -%>
+    <%- if runscript['Console'] -%>
+    Console        = "<%= runscript['Console'] %>"
+    <%- end -%>
+  }
+  <%- end -%>
+<% end -%>
+}
+
+Job {
+  Name     = "<%= @name %> Restore"
+  Client   = "<%= @name %>"
+  Type     = Restore
+  Enabled  = "<%= @restore_enable %>"
+  FileSet  = "<%= @fileset %>"
+  Storage  = "<%= @storage_server_real %>:storage:<%= @pool %>"
+  Pool     = "<%= @storage_server_real %>:pool:<%= @pool %>"
+  Messages = "<%= @director_server_real %>:messages:standard"
+  Where    = <%= @restore_where %>
+}
