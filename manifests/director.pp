@@ -28,6 +28,7 @@
 class bareos::director (
   $backup_catalog        = true,
   $clients               = undef,
+  $client_defaults       = undef,
   $console_password      = '',
   $db_backend            = 'sqlite',
   $db_database           = 'bareos',
@@ -36,6 +37,7 @@ class bareos::director (
   $db_port               = '3306',
   $db_user               = '',
   $db_user_host          = undef,
+  $db_puppet_class       = undef,
   $dir_template          = 'bareos/bareos-dir.conf.erb',
   $director_password     = '',
   $director_server       = undef,
@@ -66,7 +68,8 @@ class bareos::director (
   $volume_retention      = '1 Year',
   $volume_retention_diff = '40 Days',
   $volume_retention_full = '1 Year',
-  $volume_retention_incr = '10 Days'
+  $volume_retention_incr = '10 Days',
+  $bareos_release        = undef,
 ) {
   include ::bareos::params
 
@@ -116,7 +119,7 @@ class bareos::director (
   if $clients != undef {
     # This function takes each client specified in <tt>$clients</tt>
     # and generates a <tt>bareos::client</tt> resource for each
-    create_resources('bareos::client::config', $clients)
+    create_resources('bareos::client::config', $clients, $client_defaults)
   }
 
   package{ $director_packages:
@@ -202,13 +205,15 @@ class bareos::director (
     case $db_backend {
       'mysql'  : {
         class { '::bareos::director::mysql':
-          db_database  => $db_database,
-          db_user      => $db_user,
-          db_password  => $db_password,
-          db_port      => $db_port,
-          db_host      => $db_host,
-          db_user_host => $db_user_host,
-          manage_db    => $manage_db,
+          db_database     => $db_database,
+          db_user         => $db_user,
+          db_password     => $db_password,
+          db_port         => $db_port,
+          db_host         => $db_host,
+          db_user_host    => $db_user_host,
+          manage_db       => $manage_db,
+          db_puppet_class => $db_puppet_class,
+          bareos_release  => $bareos_release,
         }
       }
       'sqlite' : {

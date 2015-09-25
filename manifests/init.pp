@@ -186,6 +186,7 @@
 class bareos (
   $backup_catalog        = true,
   $clients               = undef,
+  $client_defaults       = undef,
   $console_password      = '',
   $console_template      = undef,
   $db_backend            = 'sqlite',
@@ -195,6 +196,7 @@ class bareos (
   $db_port               = '3306',
   $db_user               = '',
   $db_user_host          = undef,
+  $db_puppet_class       = undef,
   $director_password     = '',
   $director_server       = undef,
   $director_template     = undef,
@@ -232,7 +234,8 @@ class bareos (
   $volume_retention      = '1 Year',
   $volume_retention_diff = '40 Days',
   $volume_retention_full = '1 Year',
-  $volume_retention_incr = '10 Days'
+  $volume_retention_incr = '10 Days',
+  $bareos_release        = '14.2',
 ) {
   include ::bareos::params
 
@@ -320,6 +323,7 @@ class bareos (
     class { '::bareos::director':
       backup_catalog        => $backup_catalog,
       clients               => $clients,
+      client_defaults       => $client_defaults,
       console_password      => $console_password,
       db_backend            => $db_backend,
       db_database           => $db_database,
@@ -328,6 +332,7 @@ class bareos (
       db_port               => $db_port,
       db_user               => $db_user,
       db_user_host          => $db_user_host,
+      db_puppet_class       => $db_puppet_class,
       dir_template          => $director_template,
       director_password     => $director_password,
       director_server       => $director_server_real,
@@ -358,6 +363,7 @@ class bareos (
       volume_retention_diff => $volume_retention_diff,
       volume_retention_full => $volume_retention_full,
       volume_retention_incr => $volume_retention_incr,
+      bareos_release        => $bareos_release,
     }
 
     if $manage_logwatch_real {

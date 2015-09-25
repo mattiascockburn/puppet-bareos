@@ -82,12 +82,12 @@ class bareos::storage (
     ensure => present,
   }
 
-  file { [$storage_default_mount, "${storage_default_mount}/default"]:
+  file { "${storage_default_mount}/default":
     ensure  => directory,
     owner   => 'bareos',
     group   => 'bareos',
     mode    => '0755',
-    require => Package[$db_package],
+    require => Package[$db_package], 
   }
 
   file { '/etc/bareos/bareos-sd.d':

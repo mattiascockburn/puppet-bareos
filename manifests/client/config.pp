@@ -102,6 +102,7 @@
 #
 define bareos::client::config (
   $ensure              = file,
+  $jobname             = undef,
   $backup_enable       = 'yes',
   $client_schedule     = 'WeeklyCycle',
   $db_backend          = undef,
@@ -124,6 +125,8 @@ define bareos::client::config (
   $use_tls             = false,
 ) {
   include ::bareos::params
+
+  validate_string($jobname)
 
   if !is_domain_name($name) {
     fail "Name for client ${name} must be a fully qualified domain name"

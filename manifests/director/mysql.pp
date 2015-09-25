@@ -26,33 +26,49 @@
 # limitations under the License.
 #
 class bareos::director::mysql (
-  $db_database  = 'bareos',
-  $db_host      = 'localhost',
-  $db_password  = '',
-  $db_port      = '3306',
-  $db_user      = '',
-  $db_user_host = undef,
-  $manage_db    = false,
+  $db_database         = 'bareos',
+  $db_host             = 'localhost',
+  $db_password         = '',
+  $db_port             = '3306',
+  $db_user             = '',
+  $db_user_host        = undef,
+  $manage_db           = false,
+  $db_puppet_class     = '::mysql::server',
+  $mysql_57_workaround = false,
+  $bareos_release      = undef,
 ) {
   include ::bareos::params
 
+  validate_string($db_database)
+  validate_string($db_host)
+  validate_string($db_password)
+  validate_string($db_port)
+  validate_string($db_user)
+  validate_string($db_user_host)
+  validate_bool($manage_db)
+  validate_string($db_puppet_class)
+
   if $manage_db {
-    if defined(Class['::mysql::server']) {
-      if defined(Class['::mysql::config']) {
-        $db_require = [
-          Class['::mysql::server'],
-          Class['::mysql::config'],
-        ]
-      } else {
-        $db_require = Class['::mysql::server']
-      }
-    } else {
+    if defined(Class[$db_puppet_class]) {
+        $db_require = Class[$db_puppet_class]
+    }
+    else {
       $db_require = undef
     }
 
     $db_user_host_real = $db_user_host ? {
       undef   => $::fqdn,
       default => $db_user_host,
+    }
+
+    # This is more than just ugly 
+    if $mysql_57_workaround {
+      file{'BareOS MySQL 5.7 Workaround':
+        ensure => file,
+        path   => '/usr/lib/bareos/scripts/ddl/creates/mysql.sql',
+        source => "puppet:///modules/bareos/mysql-${bareos_release}-fix.sql",
+        before => Exec['make_db_tables'],
+      }
     }
 
     #FIXME Due to a bug in v1.0.0 of the puppetlabs-mysql module I can't use a notify here on the define.
@@ -71,7 +87,12 @@ class bareos::director::mysql (
     Mysql_database[$db_database] ~> Exec['make_db_tables']
   }
   $make_db_tables_command = '/usr/lib/bareos/scripts/make_bareos_tables'
-  $db_parameters = "$::bareos::db_backend"
+  if $::bareos::db_backend == 'mysql' { 
+    $db_parameters = "$::bareos::db_backend -u ${db_user} --password=${db_password}"
+  }
+  else {
+    $db_parameters = "$::bareos::db_backend"
+  }
 
   exec { 'make_db_tables':
     command     => "${make_db_tables_command} ${db_parameters}",
