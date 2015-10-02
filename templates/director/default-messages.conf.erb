@@ -1,0 +1,33 @@
+# DO NOT EDIT - Managed by Puppet
+#
+# Bacula Director Master Configuration
+#   for <%= @director_server_real %>
+# Configure how the directory will log and/or send messages. This
+# should should be for just about everything.
+Messages {
+  Name = "<%= @director_server_real -%>:messages:standard"
+  Mail Command = "/usr/sbin/bsmtp -h localhost -f bareos@<%= scope.lookupvar('::fqdn') -%> -s \"Bacula %t %e (for %c)\" %r"
+  Operator Command = "/usr/sbin/bsmtp -h localhost -f bareos@<%= scope.lookupvar('::fqdn') -%> -s \"Bacula Intervention Required (for %c)\" %r"
+<% if @mail_to_real -%>
+  Mail = <%= @mail_to_real -%> = all, !skipped
+<% end -%>
+<% if @mail_to_on_error -%>
+  Mail On Error = <%= @mail_to_on_error -%> = all, !skipped
+<% end -%>
+  Operator = <%= @mail_to_operator_real -%> = mount
+  Console = all, !skipped, !saved
+  # WARNING! the following will create a file that you must cycle from
+  #          time to time as it will grow indefinitely. However, it will
+  #          also keep all your messages if they scroll off the console.
+  Append = "/var/log/bareos/<%= @director_server_real -%>:director.log" = all, !skipped
+  Catalog = all
+}
+
+# These are messages directly from the various daemons themselves.
+Messages {
+  Name = "<%= @director_server_real -%>:messages:daemon"
+  Mail Command = "/usr/sbin/bsmtp -h localhost -f bareos@<%= scope.lookupvar('::fqdn') -%> -s \"Bacula Notice (from Director %d)\" %r"
+  Mail = <%= @mail_to_daemon_real -%> = all, !skipped
+  Console = all, !skipped, !saved
+  Append = "/var/log/bareos/<%= @director_server_real -%>:director.log" = all, !skipped
+}
