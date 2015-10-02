@@ -42,10 +42,19 @@ class bareos::params {
   $console_package              = 'bareos-bconsole'
 
   # Director Defaults
-  $director_packages             = ['bareos-director']
+  $director_config_file         = 'bareos-dir.conf'
+
+  $config_dir                    = '/etc/bareos'
+  $director_confd               = "${config_dir}/bareos-dir.d"
+  $config_owner                 = 'bareos'
+  $config_group                 = 'bareos'
+  $config_file_mode             = '0640'
+  $config_dir_mode              = '0750'
+  $director_packages            = ['bareos-director']
   $director_additional_packages = ['bareos-director-python-plugin']
   $director_server_default      = "bareos.${::domain}"
   $director_service             = 'bareos-dir'
+
   $lib    = $::architecture ? {
     x86_64  => 'lib64',
     default => 'lib',
@@ -58,15 +67,18 @@ class bareos::params {
   $plugin_dir                  = "${libdir}/bareos"
   $storage_package             = 'bareos-storage'
   $storage_additional_packages = ['bareos-storage-python-plugin']
+  $storage_confd               = "${config_dir}/bareos-sd.d"
+  $storage_config_file         = 'bareos-sd.conf'
+  $storage_service             = 'bareos-sd'
   $storage_server_default      = "bareos.${::domain}"
   $database_package_mysql      = 'bareos-database-mysql'
   $database_package_pgsql      = 'bareos-database-postgresql'
   $database_package_sqlite     = 'bareos-database-sqlite'
 
   # Client specific defaults
-  $client_ensure = true
-  $client_packages = ['bareos-filedaemon']
-  $client_service_name = 'bareos-fd'
-  $client_confdir = '/etc/bareos'
+  $client_ensure          = true
+  $client_packages        = ['bareos-filedaemon']
+  $client_service_name    = 'bareos-fd'
+  $client_confdir         = $config_dir
   $client_config_filename = 'bareos-fd.conf'
 }

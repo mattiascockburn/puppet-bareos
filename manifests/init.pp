@@ -189,6 +189,10 @@ class bareos (
   $client_defaults       = undef,
   $console_password      = '',
   $console_template      = undef,
+  $config_file_mode      = $bareos::params::config_file_mode,
+  $config_file_owner     = $bareos::params::config_file_owner,
+  $config_file_group     = $bareos::params::config_file_group,
+  $config_dir_mode       = $bareos::params::config_dir_group,
   $db_backend            = 'sqlite',
   $db_database           = 'bareos',
   $db_host               = 'localhost',
@@ -236,8 +240,7 @@ class bareos (
   $volume_retention_full = '1 Year',
   $volume_retention_incr = '10 Days',
   $bareos_release        = '14.2',
-) {
-  include ::bareos::params
+) inherits ::bareos::params {
 
   $director_server_real = $director_server ? {
     undef   => $::bareos::params::director_server_default,

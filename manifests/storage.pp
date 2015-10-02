@@ -34,12 +34,21 @@
 #
 class bareos::storage (
   $console_password      = '',
+  $confd                 = $::bareos::params::storage_confd,
+  $config_dir            = $::bareos::params::config_dir,
+  $config_file           = $::bareos::params::storage_config_file,
+  $config_owner          = $::bareos::params::config_owner,
+  $config_group          = $::bareos::params::config_group,
+  $config_file_mode      = $::bareos::params::config_file_mode,
+  $config_dir_mode       = $::bareos::params::config_dir_mode,
   $db_backend            = 'sqlite',
   $director_password     = '',
   $director_server       = undef,
+  $storage_default_pool  = 'default',
   $plugin_dir            = undef,
   $storage_default_mount = '/mnt/bareos',
   $storage_server        = undef,
+  $storage_service       = $::bareos::params::storage_service,
   $storage_template      = 'bareos/bareos-sd.conf.erb',
   $tls_allowed_cn        = [],
   $tls_ca_cert           = undef,
@@ -49,8 +58,11 @@ class bareos::storage (
   $tls_require           = 'yes',
   $tls_verify_peer       = 'yes',
   $use_tls               = false
-) {
-  include ::bareos::params
+) inherits ::bareos::params {
+
+  $storage_config_file = "${config_dir}/${config_file}"
+
+  $storage_default_pool_path = "${storage_default_mount}/${storage_default_pool}"
 
   $director_server_real = $director_server ? {
     undef   => $::bareos::params::director_server_default,
@@ -73,7 +85,7 @@ class bareos::storage (
   $db_package           = $db_backend ? {
     'mysql'      => $::bareos::params::database_package_mysql,
     'postgresql' => $::bareos::params::database_package_pgsql,
-    'sqlite'      => $::bareos::params::database_package_sqlite,
+    'sqlite'     => $::bareos::params::database_package_sqlite,
   }
 
   ensure_packages($db_package)
@@ -82,60 +94,58 @@ class bareos::storage (
     ensure => present,
   }
 
-  file { "${storage_default_mount}/default":
+  file { $storage_default_pool_path:
     ensure  => directory,
-    owner   => 'bareos',
-    group   => 'bareos',
-    mode    => '0755',
-    require => Package[$db_package], 
-  }
-
-  file { '/etc/bareos/bareos-sd.d':
-    ensure  => directory,
-    owner   => 'bareos',
-    group   => 'bareos',
-    mode    => '0750',
+    owner   => $config_owner,
+    group   => $config_group,
+    mode    => $config_dir_mode,
     require => Package[$db_package],
   }
 
-  file { '/etc/bareos/bareos-sd.d/empty.conf':
+  file { $confd:
+    ensure  => directory,
+    owner   => $config_owner,
+    group   => $config_group,
+    mode    => $config_dir_mode,
+    require => Package[$db_package],
+  }
+
+  file { "${confd}/empty.conf":
     ensure => file,
-    owner  => 'bareos',
-    group  => 'bareos',
-    mode   => '0640',
+    owner   => $config_owner,
+    group   => $config_group,
+    mode    => $config_file_mode
   }
 
   $file_requires = $plugin_dir ? {
     undef   => File[
-      '/etc/bareos/bareos-sd.d/empty.conf',
-      "${storage_default_mount}/default",
+      "${confd}/empty.conf",
+      $storage_default_pool_path,
       '/var/lib/bareos',
       '/var/run/bareos'
     ],
     default => File[
-      '/etc/bareos/bareos-sd.d/empty.conf',
-      "${storage_default_mount}/default",
+      "${confd}/empty.conf",
+      $storage_default_pool_path,
       '/var/lib/bareos',
       '/var/run/bareos',
       $plugin_dir
     ],
   }
 
-  file { '/etc/bareos/bareos-sd.conf':
+  file { $storage_config_file:
     ensure  => file,
-    owner   => 'bareos',
-    group   => 'bareos',
-    mode    => '0640',
+    owner   => $config_owner,
+    group   => $config_group,
+    mode    => $config_file_mode,
     content => template($storage_template),
     require => $file_requires,
-    notify  => Service['bareos-sd'],
+    notify  => Service[$storage_service],
   }
 
   # Register the Service so we can manage it through Puppet
-  service { 'bareos-sd':
+  service { $storage_service:
     ensure     => running,
     enable     => true,
-    hasstatus  => true,
-    hasrestart => true,
   }
 }

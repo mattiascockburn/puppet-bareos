@@ -26,52 +26,68 @@
 # limitations under the License.
 #
 class bareos::director (
-  $backup_catalog        = true,
-  $clients               = undef,
-  $client_defaults       = undef,
-  $console_password      = '',
-  $db_backend            = 'sqlite',
-  $db_database           = 'bareos',
-  $db_host               = 'localhost',
-  $db_password           = '',
-  $db_port               = '3306',
-  $db_user               = '',
-  $db_user_host          = undef,
-  $db_puppet_class       = undef,
-  $dir_template          = 'bareos/bareos-dir.conf.erb',
-  $director_password     = '',
-  $director_server       = undef,
-  $director_packages     = $::bareos::params::director_packages,
-  $mail_to               = undef,
-  $mail_to_daemon        = undef,
-  $mail_to_on_error      = undef,
-  $mail_to_operator      = undef,
-  $manage_config_dir     = false,
-  $manage_db             = false,
-  $manage_db_tables      = true,
-  $manage_logwatch       = undef,
-  $plugin_dir            = undef,
-  $storage_server        = undef,
-  $tls_allowed_cn        = [],
-  $tls_ca_cert           = undef,
-  $tls_ca_cert_dir       = undef,
-  $tls_cert              = undef,
-  $tls_key               = undef,
-  $tls_require           = 'yes',
-  $tls_verify_peer       = 'yes',
-  $use_console           = false,
-  $use_tls               = false,
-  $volume_autoprune      = 'Yes',
-  $volume_autoprune_diff = 'Yes',
-  $volume_autoprune_full = 'Yes',
-  $volume_autoprune_incr = 'Yes',
-  $volume_retention      = '1 Year',
-  $volume_retention_diff = '40 Days',
-  $volume_retention_full = '1 Year',
-  $volume_retention_incr = '10 Days',
-  $bareos_release        = undef,
-) {
-  include ::bareos::params
+  $confd                      = $::bareos::params::director_confd,
+  $configdir                  = $::bareos::params::config_dir,
+  $config_file                = $::bareos::params::director_config_file,
+  $config_owner               = $::bareos::params::config_owner,
+  $config_group               = $::bareos::params::config_group,
+  $config_file_mode           = $::bareos::params::config_file_mode,
+  $config_dir_mode            = $::bareos::params::config_dir_mode,
+  $backup_catalog             = true,
+  $clients                    = undef,
+  $client_defaults            = undef,
+  $console_password           = '',
+  $db_backend                 = 'sqlite',
+  $db_database                = 'bareos',
+  $db_host                    = 'localhost',
+  $db_password                = '',
+  $db_port                    = '3306',
+  $db_user                    = '',
+  $db_user_host               = undef,
+  $db_puppet_class            = undef,
+  $dir_template               = 'bareos/bareos-dir.conf.erb',
+  $default_schedules_template = 'bareos/director/default-schedules.conf.erb',
+  $default_filesets_template  = 'bareos/director/default-filesets.conf.erb',
+  $default_pools_template     = 'bareos/director/default-pools.conf.erb',
+  $default_messages_template  = 'bareos/director/default-messages.conf.erb',
+  $director_service           = $::bareos::params::director_service,
+  $director_password          = '',
+  $director_server            = undef,
+  $director_packages          = $::bareos::params::director_packages,
+  $enable_default_config      = true,
+  $filesets                   = undef,
+  $fileset_defaults           = {},
+  $mail_to                    = undef,
+  $mail_to_daemon             = undef,
+  $mail_to_on_error           = undef,
+  $mail_to_operator           = undef,
+  $manage_config_dir          = false,
+  $manage_db                  = false,
+  $manage_db_tables           = true,
+  $manage_logwatch            = undef,
+  $plugin_dir                 = undef,
+  $storage_server             = undef,
+  $tls_allowed_cn             = [],
+  $tls_ca_cert                = undef,
+  $tls_ca_cert_dir            = undef,
+  $tls_cert                   = undef,
+  $tls_key                    = undef,
+  $tls_require                = 'yes',
+  $tls_verify_peer            = 'yes',
+  $use_console                = false,
+  $use_tls                    = false,
+  $volume_autoprune           = 'Yes',
+  $volume_autoprune_diff      = 'Yes',
+  $volume_autoprune_full      = 'Yes',
+  $volume_autoprune_incr      = 'Yes',
+  $volume_retention           = '1 Year',
+  $volume_retention_diff      = '40 Days',
+  $volume_retention_full      = '1 Year',
+  $volume_retention_incr      = '10 Days',
+  $bareos_release             = undef,
+) inherits ::bareos::params {
+
+  $director_config = "${configdir}/${config_file}"
 
   $director_server_real = $director_server ? {
     undef   => $::bareos::params::director_server_default,
@@ -145,60 +161,95 @@ class bareos::director (
   # Create the configuration for the Director and make sure the directory for
   # the per-Client configuration is created before we run the realization for
   # the exported files below
-  file { '/etc/bareos/bareos-dir.d':
+  file {$confd:
     ensure  => directory,
-    owner   => 'bareos',
-    group   => 'bareos',
-    mode    => '0750',
+    owner   => $config_owner,
+    group   => $config_group,
+    mode    => $config_dir_mode,
     purge   => $manage_config_dir,
     force   => $manage_config_dir,
     recurse => $manage_config_dir,
     source  => $config_dir_source,
     require => Package[$db_package],
+    before  => File[$director_config],
     notify  => Exec['bareos-dir reload'],
   }
 
-  file { '/etc/bareos/bareos-dir.d/empty.conf':
+  file { "${confd}/empty.conf":
     ensure  => file,
-    owner   => 'bareos',
-    group   => 'bareos',
-    mode    => '0640',
+    owner   => $config_owner,
+    group   => $config_group,
+    mode    => $config_file_mode,
     content => '',
   }
 
-  $file_requires = $plugin_dir ? {
-    undef   => File[
-      '/etc/bareos/bareos-dir.d',
-      '/etc/bareos/bareos-dir.d/empty.conf',
-      '/var/lib/bareos',
-      '/var/log/bareos',
-      '/var/spool/bareos',
-      '/var/run/bareos'
-    ],
-    default => File[
-      '/etc/bareos/bareos-dir.d',
-      '/etc/bareos/bareos-dir.d/empty.conf',
-      '/var/lib/bareos',
-      '/var/log/bareos',
-      '/var/spool/bareos',
-      '/var/run/bareos',
-      $plugin_dir
-    ],
-  }
+  #  $file_requires = $plugin_dir ? {
+  #    undef   => File[
+  #      "${confd}/empty.conf",
+  #      '/var/lib/bareos',
+  #      '/var/log/bareos',
+  #      '/var/spool/bareos',
+  #      '/var/run/bareos'
+  #    ],
+  #    default => File[
+  #      "${confd}/empty.conf",
+  #      '/var/lib/bareos',
+  #      '/var/log/bareos',
+  #      '/var/spool/bareos',
+  #      '/var/run/bareos',
+  #      $plugin_dir
+  #    ],
+  #  }
 
-  file { '/etc/bareos/bareos-dir.conf':
+  file { $director_config:
     ensure  => file,
-    owner   => 'bareos',
-    group   => 'bareos',
-    mode    => '0640',
+    owner   => $config_owner,
+    group   => $config_group,
+    mode    => $config_file_mode,
     content => template($dir_template),
-    require => $file_requires,
-    before  => Service['bareos-dir'],
+    before  => Service[$director_service],
     notify  => Exec['bareos-dir reload'],
   }
 
+  if $enable_default_config {
+    file { "${confd}/default-schedules.conf":
+      ensure  => file,
+      owner   => $config_owner,
+      group   => $config_group,
+      mode    => $config_file_mode,
+      tag     => ['bareos-default-config'],
+      content => template($default_schedules_template),
+    }
+
+    file { "${confd}/default-filesets.conf":
+      ensure => file,
+      owner   => $config_owner,
+      group   => $config_group,
+      mode    => $config_file_mode,
+      tag     => ['bareos-default-config'],
+      content => template($default_filesets_template),
+    }
+    file { "${confd}/default-pools.conf":
+      ensure => file,
+      owner   => $config_owner,
+      group   => $config_group,
+      mode    => $config_file_mode,
+      tag     => ['bareos-default-config'],
+      content => template($default_pools_template),
+    }
+    file { "${confd}/default-messages.conf":
+      ensure => file,
+      owner   => $config_owner,
+      group   => $config_group,
+      mode    => $config_file_mode,
+      tag     => ['bareos-default-config'],
+      content => template($default_messages_template),
+    }
+    File <| tag == 'bareos-default-config' |> -> File[$director_config]
+  }
+
   if $backup_catalog {
-    File["/etc/bareos/bareos-dir.d/${director_server_real}.conf"] -> File['/etc/bareos/bareos-dir.conf']
+    File["${confd}/client-${director_server_real}.conf"] -> File[$director_config]
   }
 
   if $manage_db_tables {
@@ -231,31 +282,37 @@ class bareos::director (
   if $manage_db_tables {
     $service_require = [
       Exec['make_db_tables'],
-      File['/etc/bareos/bareos-dir.conf'],
+      File[$director_config],
     ]
   } else {
-    $service_require = File['/etc/bareos/bareos-dir.conf']
+    $service_require = File[$director_config]
   }
 
-  service { 'bareos-dir':
+  service { $director_service:
     ensure     => running,
-    name       => $::bareos::params::director_service,
+    name       => $director_service,
     enable     => true,
     hasstatus  => true,
     hasrestart => true,
     require    => $service_require,
   }
 
+  # Creating additional filesets on demand
+  if $filesets {
+    validate_hash($filesets)
+    validate_hash($fileset_defaults)
+
+    create_resources('bareos::director::fileset',$filesets,$fileset_defaults)
+  }
   # Instead of restarting the <code>bareos-dir</code> service which could interrupt running jobs tell the director to reload its
   # configuration.
   exec { 'bareos-dir reload':
     command     => '/bin/echo reload | /usr/sbin/bconsole',
-    logoutput   => on_failure,
     refreshonly => true,
     timeout     => 10,
     require     => [
       Class['::bareos::console'],
-      Service['bareos-dir'],
+      Service[$director_service],
     ],
   }
 }

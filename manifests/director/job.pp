@@ -1,6 +1,7 @@
-# == Define: bareos::client::config
+# == Define: bareos::job
+# adjusted by Mattias Giese, giese@b1-systems.de
 #
-# Install a config file describing a <code>bareos-fd</code> client on the director.
+# Install a config file describing a client job on the director.
 #
 # === Parameters
 #
@@ -100,51 +101,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-define bareos::client::config (
-  $ensure              = file,
-  $create_default_jobs = true,
-  $jobname             = undef,
-  $job_enable          = 'yes',
-  $client_schedule     = 'WeeklyCycle',
-  $db_backend          = undef,
-  $director_password   = '',
-  $director_server     = undef,
-  $fileset             = 'Basic:noHome',
-  $pool                = 'default',
-  $pool_diff           = undef,
-  $pool_full           = undef,
-  $pool_incr           = undef,
-  $priority            = undef,
-  $rerun_failed_levels = 'no',
-  $restore_where       = '/var/tmp/bareos-restores',
-  $run_scripts         = undef,
-  $storage_server      = undef,
-  $tls_ca_cert         = undef,
-  $tls_ca_cert_dir     = undef,
-  $tls_require         = 'yes',
-  $use_tls             = false,
+define bareos::director::job (
+  $ensure         = file,
+  $client         = undef,
+  $enable         = 'yes',
+  $jobname        = $name,
+  $type           = undef,
+  $job_schedule   = 'WeeklyCycle',
+  $fileset        = undef,
+  $pool           = 'default',
+  $pool_diff      = undef,
+  $pool_full      = undef,
+  $pool_incr      = undef,
+  $priority       = undef,
+  $restore_where  = '/var/tmp/bareos-restores',
+  $run_scripts    = undef,
+  $rerun_when_failed = 'no',
+  $storage_server = undef,
 ) {
   include ::bareos::params
 
   validate_string($jobname)
+  validate_string($type,'^(Restore|Backup)$')
 
-  if !is_domain_name($name) {
-    fail "Name for client ${name} must be a fully qualified domain name"
+  if !is_domain_name($client) {
+    fail "Name for client ${client} must be a fully qualified domain name"
   }
 
-  validate_re($job_enable, '^(yes|Yes|no|No)$')
-
-  case $db_backend {
-    undef   : {
-      $db_backend_real = $::bareos::director::db_backend ? {
-        undef   => 'sqlite',
-        default => $::bareos::director::db_backend,
-      }
-    }
-    default : {
-      $db_backend_real = $db_backend
-    }
-  }
+  validate_re($enable, '^(yes|Yes|no|No)$')
 
   case $director_password {
     ''      : {
@@ -190,8 +174,8 @@ define bareos::client::config (
     default => $pool_incr,
   }
 
-  if !($rerun_failed_levels in ['yes', 'no']) {
-    fail("rerun_failed_levels = ${rerun_failed_levels} must be either 'yes' or 'no'")
+  if !($rerun_when_failed in ['yes', 'no']) {
+    fail("rerun_when_failed = ${rerun_when_failed} must be either 'yes' or 'no'")
   }
 
   if $run_scripts {
@@ -225,41 +209,13 @@ define bareos::client::config (
     fail "storage_server=${storage_server_real} must be a fully qualified domain name"
   }
 
-  file { "${::bareos::params::director_confd}/client-${name}.conf":
+  file { "${::bareos::params::director_confd}/job-${name}.conf":
     ensure  => $ensure,
     owner   => $::bareos::params::config_owner,
     group   => $::bareos::params::config_group,
     mode    => $::bareos::params::config_file_mode,
-    content => template('bareos/client_config.erb'),
+    content => template('bareos/director/job.erb'),
     before  => Service[$::bareos::params::director_service],
     notify  => Exec['bareos-dir reload'],
-  }
-
-  if $create_default_jobs {
-    bareos::director::job{"${name}-Base":
-      enable            => 'yes',
-      client            => $name,
-      type              => 'Backup',
-      pool              => $pool,
-      pool_diff         => $pool_diff,
-      pool_full         => $pool_full,
-      pool_incr         => $pool_incr,
-      priority          => $priority,
-      run_scripts       => $run_scripts,
-      job_schedule      => $client_schedule,
-      fileset           => $fileset,
-      storage_server    => $storage_server,
-      rerun_when_failed => $rerun_when_failed,
-    }
-
-    bareos::director::job{"${name}-Restore":
-      enable         => 'yes',
-      client         => $name,
-      type           => 'Restore',
-      pool           => $pool,
-      job_schedule   => $client_schedule,
-      fileset        => $fileset,
-      storage_server => $storage_server,
-    }
   }
 }
